@@ -1,25 +1,16 @@
-﻿已經開始建置於 2015/6/5 上午 10:25:03。
-     1>節點 2 (Build 目標) 上的專案 "C:\Users\9200\Desktop\WORK\P2P\UDT\udt.sdk.4.11\udt4-appclient\win\test.vcxproj"。
+﻿已經開始建置於 2015/6/11 上午 09:15:57。
+     1>節點 2 (Rebuild 目標) 上的專案 "C:\Users\9200\Desktop\WORK\P2P\UDT\udt.sdk.4.11\udt4-appclient\win\test.vcxproj"。
+     1>C:\Program Files (x86)\MSBuild\Microsoft.Cpp\v4.0\V120\Microsoft.CppClean.targets(76,5): warning : 由於另一個處理序正在使用檔案 'c:\users\9200\desktop\work\p2p\udt\udt.sdk.4.11\udt4-appclient\app\vc120.pdb'，所以無法存取該檔案。
+     1>C:\Program Files (x86)\MSBuild\Microsoft.Cpp\v4.0\V120\Microsoft.CppClean.targets(76,5): warning : 由於另一個處理序正在使用檔案 'c:\users\9200\desktop\work\p2p\udt\udt.sdk.4.11\udt4-appclient\app\vc120.idb'，所以無法存取該檔案。
+     1>C:\Program Files (x86)\MSBuild\Microsoft.Cpp\v4.0\V120\Microsoft.CppClean.targets(76,5): warning : 由於另一個處理序正在使用檔案 'c:\users\9200\desktop\work\p2p\udt\udt.sdk.4.11\udt4-appclient\app\appclient.sbr'，所以無法存取該檔案。
+     1>C:\Program Files (x86)\MSBuild\Microsoft.Cpp\v4.0\V120\Microsoft.CppBuild.targets(388,5): warning MSB8028: The intermediate directory (../app\) contains files shared from another project (appclient.vcxproj, appserver.vcxproj, recvfile.vcxproj, sendfile.vcxproj).  This can lead to incorrect clean and rebuild behavior.
      1>ClCompile:
-         C:\Program Files (x86)\Microsoft Visual Studio 12.0\VC\bin\CL.exe /c /I../src /I../src /ZI /nologo /W3 /WX- /Od /Oy- /D WIN32 /D _DEBUG /D _CONSOLE /D _VC80_UPGRADE=0x0710 /D _MBCS /Gm /EHsc /RTC1 /MDd /GS /fp:precise /Zc:wchar_t /Zc:forScope /Fo"../app\\" /Fd"../app\vc120.pdb" /Gd /TP /analyze- /errorReport:prompt ..\app\test.cpp
+         C:\Program Files (x86)\Microsoft Visual Studio 12.0\VC\bin\CL.exe /c /I../src /I../src /ZI /nologo /W3 /WX- /Od /Oy- /D CODE_ANALYSIS /D WIN32 /D _DEBUG /D _CONSOLE /D _VC80_UPGRADE=0x0710 /D _MBCS /Gm /EHsc /RTC1 /MDd /GS /fp:precise /Zc:wchar_t /Zc:forScope /Fo"../app\\" /Fd"../app\vc120.pdb" /Gd /TP /analyze /errorReport:prompt   /analyze:quiet ..\app\test.cpp
+     1>cl : 命令列 warning D9028: 最少重建失敗，還原成一般建置
          test.cpp
-     1>c:\users\9200\desktop\work\p2p\udt\udt.sdk.4.11\udt4-appclient\src\udt.h(248): warning C4251: 'CUDTException::m_strMsg' : class 'std::basic_string<char,std::char_traits<char>,std::allocator<char>>' 必須有 DLL 介面，才能被為 class 'CUDTException' 的用戶端使用
-     1>c:\users\9200\desktop\work\p2p\udt\udt.sdk.4.11\udt4-appclient\src\udt.h(250): warning C4251: 'CUDTException::m_strAPI' : class 'std::basic_string<char,std::char_traits<char>,std::allocator<char>>' 必須有 DLL 介面，才能被為 class 'CUDTException' 的用戶端使用
-     1>c:\users\9200\desktop\work\p2p\udt\udt.sdk.4.11\udt4-appclient\src\udt.h(251): warning C4251: 'CUDTException::m_strDebug' : class 'std::basic_string<char,std::char_traits<char>,std::allocator<char>>' 必須有 DLL 介面，才能被為 class 'CUDTException' 的用戶端使用
-     1>c:\users\9200\desktop\work\p2p\udt\udt.sdk.4.11\udt4-appclient\app\test.cpp(36): warning C4996: 'sprintf': This function or variable may be unsafe. Consider using sprintf_s instead. To disable deprecation, use _CRT_SECURE_NO_WARNINGS. See online help for details.
-                 c:\program files (x86)\microsoft visual studio 12.0\vc\include\stdio.h(356) : 請參閱 'sprintf' 的宣告
-     1>c:\users\9200\desktop\work\p2p\udt\udt.sdk.4.11\udt4-appclient\app\test.cpp(81): warning C4996: 'sprintf': This function or variable may be unsafe. Consider using sprintf_s instead. To disable deprecation, use _CRT_SECURE_NO_WARNINGS. See online help for details.
-                 c:\program files (x86)\microsoft visual studio 12.0\vc\include\stdio.h(356) : 請參閱 'sprintf' 的宣告
-     1>c:\users\9200\desktop\work\p2p\udt\udt.sdk.4.11\udt4-appclient\app\test.cpp(108): warning C4996: 'sprintf': This function or variable may be unsafe. Consider using sprintf_s instead. To disable deprecation, use _CRT_SECURE_NO_WARNINGS. See online help for details.
-                 c:\program files (x86)\microsoft visual studio 12.0\vc\include\stdio.h(356) : 請參閱 'sprintf' 的宣告
-     1>c:\users\9200\desktop\work\p2p\udt\udt.sdk.4.11\udt4-appclient\app\test.cpp(130): warning C4996: 'sprintf': This function or variable may be unsafe. Consider using sprintf_s instead. To disable deprecation, use _CRT_SECURE_NO_WARNINGS. See online help for details.
-                 c:\program files (x86)\microsoft visual studio 12.0\vc\include\stdio.h(356) : 請參閱 'sprintf' 的宣告
-       Link:
-         C:\Program Files (x86)\Microsoft Visual Studio 12.0\VC\bin\link.exe /ERRORREPORT:PROMPT /OUT:"../app\test.exe" /INCREMENTAL /NOLOGO /LIBPATH:../src kernel32.lib user32.lib ws2_32.lib udt.lib /MANIFEST /MANIFESTUAC:"level='asInvoker' uiAccess='false'" /manifest:embed /DEBUG /PDB:"../app\test.pdb" /SUBSYSTEM:CONSOLE /TLBID:1 /DYNAMICBASE:NO /IMPLIB:"../app\test.lib" /MACHINE:X86 /SAFESEH ../app\test.obj
-     1>test.obj : warning LNK4075: 忽略 '/EDITANDCONTINUE'，由於 '/SAFESEH' 規格
-         test.vcxproj -> C:\Users\9200\Desktop\WORK\P2P\UDT\udt.sdk.4.11\udt4-appclient\win\../app\test.exe
-     1>專案 "C:\Users\9200\Desktop\WORK\P2P\UDT\udt.sdk.4.11\udt4-appclient\win\test.vcxproj" (Build 目標) 建置完成。
+     1>c:\users\9200\desktop\work\p2p\udt\udt.sdk.4.11\udt4-appclient\app\test.cpp : fatal error C1041: 無法開啟程式資料庫 'c:\users\9200\desktop\work\p2p\udt\udt.sdk.4.11\udt4-appclient\app\vc120.pdb'; 如果要將多個 CL.EXE 寫到同一個 .PDB 檔案，請使用 /FS
+     1>專案 "C:\Users\9200\Desktop\WORK\P2P\UDT\udt.sdk.4.11\udt4-appclient\win\test.vcxproj" (Rebuild 目標) 建置完成 -- 失敗。
 
-建置成功。
+建置失敗。
 
-經過時間 00:00:01.22
+經過時間 00:00:00.75

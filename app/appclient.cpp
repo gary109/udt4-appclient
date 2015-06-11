@@ -16,7 +16,7 @@
 #include <signal.h>
 
 #include <map>
-#include <queue>
+#include <deque>
 #include <iostream>
 #include <udt.h>
 #include "cc.h"
@@ -65,9 +65,9 @@ DWORD WINAPI monitor(LPVOID);
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-static int main_running = 1;
-static int udt_running = 1;
-static int tcp_running = 1;
+static int main_running = 0;
+static int udt_running = 0;
+static int tcp_running = 0;
 static void signal_handler(int sig);
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -89,10 +89,10 @@ static void signal_handler(int sig);
 #define CMD_ACK					1
 #define CMD_DATA_C2S			2
 #define CMD_DATA_S2C			3
-#define CMD_DISCONNECT			4
-#define CMD_DATA_C2T			5
-#define CMD_DATA_S2T			6
-#define CMD_DISCONNECT_ACK		7
+#define CMD_C_DISCONNECT		4
+#define CMD_S_DISCONNECT		5
+#define CMD_DATA_C2T			6
+#define CMD_DATA_S2T			7
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -125,8 +125,7 @@ typedef struct _package
 map<unsigned int, unsigned int> connectMap;
 map<unsigned int, unsigned int>::iterator connectMap_iter;
 
-
-queue<package_t*> taskQueue;
+deque<package_t*> taskQueue;
 set<UDTSOCKET> readfds;
 set<SYSSOCKET> tcpread;
 SYSSOCKET tcpsock;
@@ -233,7 +232,7 @@ map_insert(map < unsigned int, unsigned int> *mapS, unsigned int key, unsigned i
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 void
-addTaskQueueItem(queue<package_t*> *q, unsigned int cmd, unsigned int cliFD, unsigned int srvFD, char* buf, int len) {
+addTaskQueueItem2Back(deque<package_t*> *q, unsigned int cmd, unsigned int cliFD, unsigned int srvFD, char* buf, int len) {
 
 	package_t *p = new package_t[1];
 
@@ -249,15 +248,29 @@ addTaskQueueItem(queue<package_t*> *q, unsigned int cmd, unsigned int cliFD, uns
 		memcpy(p->payload.buf, buf, len);
 		p->payload.len = len;
 	}
-	if (debug_level >= DEBUG_LEVEL1) {
-		cout << "\tQueue.back().cmd:" << p->header.cmd << endl;
-		cout << "\tQueue.back().cliFD:" << p->header.cliFD << endl;
-		cout << "\tQueue.back().srvFD:" << p->header.srvFD << endl;
-		cout << "\tQueue.back().payload.len:" << p->payload.len << endl;
-	}
-	q->push(p);
-}
 
+	q->push_back(p);
+}
+void
+addTaskQueueItem2Front(deque<package_t*> *q, unsigned int cmd, unsigned int cliFD, unsigned int srvFD, char* buf, int len) {
+
+	package_t *p = new package_t[1];
+
+	p->header.cmd = cmd;
+	p->header.cliFD = cliFD;
+	p->header.srvFD = srvFD;
+
+	if (buf == NULL) {
+		memset(p->payload.buf, 0, DATA_MAX_LEN);
+		p->payload.len = 0;
+	}
+	else {
+		memcpy(p->payload.buf, buf, len);
+		p->payload.len = len;
+	}
+
+	q->push_front(p);
+}
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -275,20 +288,18 @@ DWORD WINAPI AppClient_UDT(LPVOID param)
    	sigaddset(&ps, SIGPIPE);
    	pthread_sigmask(SIG_BLOCK, &ps, NULL);
 #endif
+	udt_running = 0;
+	while (!tcp_running);
 	///////////////////////////////////////////////////////////////////
 	// selecting random local port
-	printf("Create UDT Socket ...\n");
 	srand(time(NULL));
 	int myPort = LOCAL_PORT;//9001 + rand() % 200;
 	printf("my port: %d\n", myPort);
 	createUDTSocket(client, myPort, true);
-	printf("ok\n");
 	///////////////////////////////////////////////////////////////////
 	cout << "Press any key to continue...";
 	cin >> pause;
 	///////////////////////////////////////////////////////////////////
-	printf("connect to server ...\n");
-	printf("Server IP:%s Port:%d... \n", PROXY_IP, PROXY_PORT);
 	sockaddr_in serv_addr;
 	serv_addr.sin_family = AF_INET;
 	serv_addr.sin_port = htons(PROXY_PORT);
@@ -298,7 +309,6 @@ DWORD WINAPI AppClient_UDT(LPVOID param)
 		cout << "connect error: " << UDT::getlasterror().getErrorMessage();
 		return NULL;
 	}
-	printf("ok\n");
 	///////////////////////////////////////////////////////////////////
 	udt_eid = UDT::epoll_create();
 	UDT::epoll_add_usock(udt_eid, client);
@@ -310,16 +320,12 @@ DWORD WINAPI AppClient_UDT(LPVOID param)
 	udtsize = sizeof(udtbuf);
 	
 	cout << "Run UDT loop ...\n";
-
+	udt_running = 1;
 	while(udt_running) {
 		state = UDT::epoll_wait(udt_eid, &readfds, NULL, 0 , NULL, NULL);
 		
 		if(state > 0) {
 			for (set<UDTSOCKET>::iterator i = readfds.begin(); i != readfds.end(); ++ i) {
-				if (debug_level >= DEBUG_LEVEL1) {
-					printf("==================================================\n");
-					cout << "Recv UDT data ...\n";
-				}
 				int rs = 0;
 				int rsize = 0;
 				while (rsize < udtsize)
@@ -344,48 +350,29 @@ DWORD WINAPI AppClient_UDT(LPVOID param)
 					}
 					rsize += rs;
 				}
-				if (debug_level >= DEBUG_LEVEL1) {
-					cout << "\tcmd:" << udtbuf.header.cmd << endl;
-					cout << "\tcliFD:" << udtbuf.header.cliFD << endl;
-					cout << "\tsrvFD:" << udtbuf.header.srvFD << endl;
-					cout << "\tlen:" << udtbuf.payload.len << endl;
-					cout << "\trs:" << rs << endl;
-				}
-
-
 				if (rs > 0)
 				{
 					switch (udtbuf.header.cmd)
 					{
-						case CMD_DISCONNECT:
+						case CMD_S_DISCONNECT:
 						{
-							addTaskQueueItem(&taskQueue, CMD_DISCONNECT_ACK, udtbuf.header.cliFD, 0, NULL, 0);
+							addTaskQueueItem2Back(&taskQueue, CMD_S_DISCONNECT, udtbuf.header.cliFD, 0, NULL, 0);
 						}
 						break;
 						case CMD_DATA_S2C:
 						{
-							//addTaskQueueItem(&taskQueue,
-							//				 CMD_DATA_C2T,
-							//				 udtbuf.header.cliFD,
-							//				 udtbuf.header.srvFD,
-							//				 udtbuf.payload.buf,
-							//				 udtbuf.payload.len);
-							int rs = send(udtbuf.header.cliFD, udtbuf.payload.buf, udtbuf.payload.len, 0);
-							if (0 > rs){
-								cout << "\terror1.\n";
-							}
-							else if (rs == 0){
-								printf("\tdisconnect.\n");
-							}
-							else{
-								printf("\tok.[%d]\n", rs);
+							connectMap_iter = connectMap.find(udtbuf.header.cliFD);
+							if (connectMap_iter != connectMap.end())
+							{
+								int rs = send(udtbuf.header.cliFD, udtbuf.payload.buf, udtbuf.payload.len, 0);
+								if (0 > rs)			cout << "\t CMD_DATA_S2C error1.\n";
+								else if (rs == 0)	printf("\t CMD_DATA_S2C disconnect.\n");
 							}
 						}
 						break;
 						default:break;
 					}
 				}
-
 			}	
 		}
 		else
@@ -430,40 +417,27 @@ DWORD WINAPI AppClient_TCP(LPVOID param)
 	sigaddset(&ps, SIGPIPE);
 	pthread_sigmask(SIG_BLOCK, &ps, NULL);
 #endif
+	SYSSOCKET tcp_serv;
 	int state;
+	tcp_running = 0;
 	package_t udtbuf = { 0 };
 	tcp_eid = UDT::epoll_create();
 	char* tcpdata = new char[TCP_DATA_MAX_LEN];
-	printf("Create TCP serve ...\n");
-	
-	SYSSOCKET tcp_serv;
 	if (createTCPSocket(tcp_serv, REMOTE_PORT) < 0)
 	{
-		//PERROR_GOTO(true, "createTCPSocket", done);
 		UDT::epoll_release(tcp_eid);
 		return NULL;
 	}
-	printf("ok\n");
 
-	printf("listen ...\n");
 	listen(tcp_serv, 1024);
-	printf("ok\n");
-
 	UDT::epoll_add_ssock(tcp_eid, tcp_serv);
-
 	cout << "Run TCP loop ...\n";
+	tcp_running = 1;
 	while (tcp_running) {
 		state = UDT::epoll_wait(tcp_eid, NULL, NULL, 0, &tcpread, NULL);
 		if (state > 0) {
-			for (set<SYSSOCKET>::iterator i = tcpread.begin(); i != tcpread.end(); ++i)
-			{
-				if (debug_level >= DEBUG_LEVEL1) {
-					printf("==================================================\n");
-				}
+			for (set<SYSSOCKET>::iterator i = tcpread.begin(); i != tcpread.end(); ++i) {
 				if (*i == tcp_serv) {
-					if (debug_level >= DEBUG_LEVEL1) {
-						printf("Read data from TCP...is tcp_serv\n");
-					}
 					sockaddr_storage clientaddr;
 					socklen_t addrlen = sizeof(clientaddr);
 
@@ -477,26 +451,16 @@ DWORD WINAPI AppClient_TCP(LPVOID param)
 	
 					map_insert(&connectMap, tcpsock, 0);
 					UDT::epoll_add_ssock(tcp_eid, tcpsock);
-					addTaskQueueItem(&taskQueue, CMD_CONNECT, tcpsock, 0, NULL, 0);
+					addTaskQueueItem2Back(&taskQueue, CMD_CONNECT, tcpsock, 0, NULL, 0);
 
 				}else{
-					if (debug_level >= DEBUG_LEVEL1) {
-						printf("Recv data from TCP...is other tcp sock\n");
-						cout << "Recv TCP data ...\n";
-					}
 					int rs = recv(*i, tcpdata, TCP_DATA_MAX_LEN, 0);
-
-					printf("\ttcpread: rs=%d\n", rs);
 					if (rs <= 0)
 					{
-						printf("\tTCP[%d] disconnect processing...\n", *i);
-
 						if (rs < 0)
 							printf("\tTCP[%d] can't read.\n", *i);
 						else
 							printf("\tTCP[%d] disconnect.\n", *i);
-
-						printf("\t Create udtQueue...\n");
 
 						UDT::epoll_remove_ssock(tcp_eid, *i);
 						#ifndef WIN32
@@ -511,14 +475,14 @@ DWORD WINAPI AppClient_TCP(LPVOID param)
 						{
 							tmp = connectMap_iter->second;
 							connectMap.erase(connectMap_iter);
-							addTaskQueueItem(&taskQueue, CMD_DISCONNECT, *i, tmp, NULL, 0);
+							addTaskQueueItem2Back(&taskQueue, CMD_C_DISCONNECT, *i, tmp, NULL, 0);
 						}
 					}
 					else{
 						connectMap_iter = connectMap.find(*i);
 						if (connectMap_iter == connectMap.end())
 							continue;
-						addTaskQueueItem(&taskQueue, CMD_DATA_C2S, *i, connectMap_iter->second, tcpdata, rs);
+						addTaskQueueItem2Back(&taskQueue, CMD_DATA_C2S, *i, connectMap_iter->second, tcpdata, rs);
 					}
 				}
 			}
@@ -552,9 +516,9 @@ DWORD WINAPI AppClient_TCP(LPVOID param)
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 #ifndef WIN32
-void* AppClient_MAIN(void* param)
+void* TaskQueue_Processing(void* param)
 #else
-DWORD WINAPI AppClient_MAIN(LPVOID param)
+DWORD WINAPI TaskQueue_Processing(LPVOID param)
 #endif
 {
 #ifndef WIN32
@@ -565,11 +529,12 @@ DWORD WINAPI AppClient_MAIN(LPVOID param)
 	pthread_sigmask(SIG_BLOCK, &ps, NULL);
 #endif
 	cout << "Run Task loop ...\n";
+	main_running = 1;
 	while (main_running) {
 		if (!taskQueue.empty()) {
 			switch (taskQueue.front()->header.cmd)
 			{
-				case CMD_DISCONNECT_ACK:
+				case CMD_S_DISCONNECT:
 				{
 					connectMap_iter = connectMap.find(taskQueue.front()->header.cliFD);
 					if (connectMap_iter != connectMap.end())
@@ -581,15 +546,11 @@ DWORD WINAPI AppClient_MAIN(LPVOID param)
 						closesocket(taskQueue.front()->header.cliFD);
 #endif
 					}
-					taskQueue.pop();
+					taskQueue.pop_front();
 				}
 				break;
-				case CMD_DISCONNECT:
+				case CMD_C_DISCONNECT:
 				{
-					if (debug_level >= DEBUG_LEVEL1) {
-						printf("==================================================\n");
-						cout << "task Queue entry ... [UDT]\n";
-					}
 					char* buftmp = (char*)(taskQueue.front());
 					int res = 0;
 					int ssize = 0;
@@ -612,18 +573,11 @@ DWORD WINAPI AppClient_MAIN(LPVOID param)
 					//UDT::perfmon(client, &trace);
 					//cout << "\tspeed = " << trace.mbpsSendRate << "Mbits/sec" << endl;
 
-					taskQueue.pop();
-					if (debug_level >= DEBUG_LEVEL1) {
-						cout << "task Queue exit ... [UDT]\n";
-					}
+					taskQueue.pop_front();
 				}
 				break;
 				case CMD_DATA_C2T:
 				{
-					if (debug_level >= DEBUG_LEVEL1) {
-						printf("==================================================\n");
-						cout << "task Queue entry ... [TCP]\n";
-					}
 					connectMap_iter = connectMap.find(taskQueue.front()->header.cliFD);
 					if (connectMap_iter != connectMap.end())
 					{
@@ -631,38 +585,23 @@ DWORD WINAPI AppClient_MAIN(LPVOID param)
 									  taskQueue.front()->payload.buf,
 									  taskQueue.front()->payload.len,
 									  0);
-						if (0 > rs){
-							cout << "\terror1.\n";
-						}
-						else if (rs == 0){
-							printf("\tdisconnect.\n");
-						}
-						else{
-							printf("\tok.[%d]\n", rs);
+						if (0 < rs)
+						{}
+						else
+						{
+							if (0 > rs)			
+								cout << "\t CMD_DATA_C2T error1.\n";
+							else if (rs == 0)	
+								printf("\t CMD_DATA_C2T disconnect.\n");
+							connectMap.erase(connectMap_iter);
 						}
 					}
-					else {
-
-						printf("\t Can't find.\n");
-					}
-					taskQueue.pop();
-					if (debug_level >= DEBUG_LEVEL1) {
-						cout << "task Queue exit ... [TCP]\n";
-					}
+					taskQueue.pop_front();
 				}
 				break;
 				case CMD_CONNECT:
 				case CMD_DATA_C2S:
 				{
-					if (debug_level >= DEBUG_LEVEL1) {
-						printf("==================================================\n");
-						cout << "task Queue entry ... [UDT]" << endl;
-						cout << "\tcmd:" << taskQueue.front()->header.cmd << endl;
-						cout << "\tcliFD:" << taskQueue.front()->header.cliFD << endl;
-						cout << "\tsrvFD:" << taskQueue.front()->header.srvFD << endl;
-						cout << "\tlen:" << taskQueue.front()->payload.len << endl;
-					}
-
 					char* buftmp = (char*)(taskQueue.front());
 					int rs = 0;
 					int ssize = 0;
@@ -684,8 +623,7 @@ DWORD WINAPI AppClient_MAIN(LPVOID param)
 					//UDT::perfmon(client, &trace);
 					//cout << "\tspeed = " << trace.mbpsSendRate << "Mbits/sec" << endl;
 
-					taskQueue.pop();
-					cout << "task Queue exit ... [UDT]\n";
+					taskQueue.pop_front();
 					break;
 				}
 				default:
@@ -714,7 +652,7 @@ main(int argc, char* argv[])
 	DWORD(WINAPI *AppClient[test_case])(LPVOID);
 #endif
 
-	AppClient[0] = AppClient_MAIN;
+	AppClient[0] = TaskQueue_Processing;
 	AppClient[1] = AppClient_TCP;
 	AppClient[2] = AppClient_UDT;
 
@@ -870,14 +808,14 @@ createUDTSocket(UDTSOCKET& usock, int port, bool rendezvous) {
 #endif
 
 	// since we will start a lot of connections, we set the buffer size to smaller value.
-	int snd_buf = 8192;
-	int rcv_buf = 8192;
+	int snd_buf = 16000;//8192;
+	int rcv_buf = 16000;//8192;
 
 	UDT::setsockopt(usock, 0, UDT_SNDBUF, &snd_buf, sizeof(int));
 	UDT::setsockopt(usock, 0, UDT_RCVBUF, &rcv_buf, sizeof(int));
 
-	snd_buf = 8192;
-	rcv_buf = 8192;
+	snd_buf = 16000;//8192;
+	rcv_buf = 16000;//8192;
 
 	UDT::setsockopt(usock, 0, UDP_SNDBUF, &snd_buf, sizeof(int));
 	UDT::setsockopt(usock, 0, UDP_RCVBUF, &rcv_buf, sizeof(int));
