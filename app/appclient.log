@@ -1,4 +1,4 @@
-﻿已經開始建置於 2015/6/11 下午 02:42:55。
+﻿已經開始建置於 2015/6/12 上午 08:59:39。
      1>節點 2 (Rebuild 目標) 上的專案 "C:\Users\9200\Desktop\WORK\P2P\UDT\udt.sdk.4.11\udt4-appclient\win\appclient.vcxproj"。
      1>C:\Program Files (x86)\MSBuild\12.0\bin\Microsoft.Common.CurrentVersion.targets(1492,5): warning : The referenced project 'udt.vcxproj' does not exist.
      1>C:\Program Files (x86)\MSBuild\Microsoft.Cpp\v4.0\V120\Microsoft.CppBuild.targets(388,5): warning MSB8028: The intermediate directory (../app\) contains files shared from another project (appserver.vcxproj, recvfile.vcxproj, sendfile.vcxproj, test.vcxproj).  This can lead to incorrect clean and rebuild behavior.
@@ -8,24 +8,23 @@
      1>c:\users\9200\desktop\work\p2p\udt\udt.sdk.4.11\udt4-appclient\src\udt.h(248): warning C4251: 'CUDTException::m_strMsg' : class 'std::basic_string<char,std::char_traits<char>,std::allocator<char>>' 必須有 DLL 介面，才能被為 class 'CUDTException' 的用戶端使用
      1>c:\users\9200\desktop\work\p2p\udt\udt.sdk.4.11\udt4-appclient\src\udt.h(250): warning C4251: 'CUDTException::m_strAPI' : class 'std::basic_string<char,std::char_traits<char>,std::allocator<char>>' 必須有 DLL 介面，才能被為 class 'CUDTException' 的用戶端使用
      1>c:\users\9200\desktop\work\p2p\udt\udt.sdk.4.11\udt4-appclient\src\udt.h(251): warning C4251: 'CUDTException::m_strDebug' : class 'std::basic_string<char,std::char_traits<char>,std::allocator<char>>' 必須有 DLL 介面，才能被為 class 'CUDTException' 的用戶端使用
-     1>c:\users\9200\desktop\work\p2p\udt\udt.sdk.4.11\udt4-appclient\app\appclient.cpp(295): warning C4244: '引數' : 將 'time_t' 轉換為 'unsigned int'，由於類型不同，可能導致資料遺失
-     1>c:\users\9200\desktop\work\p2p\udt\udt.sdk.4.11\udt4-appclient\app\appclient.cpp(281): warning C4100: 'param' : 未參考的型式參數
-     1>c:\users\9200\desktop\work\p2p\udt\udt.sdk.4.11\udt4-appclient\app\appclient.cpp(319): warning C4189: 'ssize' : 已初始化區域變數，但並未參考
-     1>c:\users\9200\desktop\work\p2p\udt\udt.sdk.4.11\udt4-appclient\app\appclient.cpp(410): warning C4100: 'param' : 未參考的型式參數
-     1>c:\users\9200\desktop\work\p2p\udt\udt.sdk.4.11\udt4-appclient\app\appclient.cpp(423): warning C4189: 'udtbuf' : 已初始化區域變數，但並未參考
-     1>c:\users\9200\desktop\work\p2p\udt\udt.sdk.4.11\udt4-appclient\app\appclient.cpp(521): warning C4100: 'param' : 未參考的型式參數
-     1>c:\users\9200\desktop\work\p2p\udt\udt.sdk.4.11\udt4-appclient\app\appclient.cpp(645): warning C4100: 'argv' : 未參考的型式參數
-     1>c:\users\9200\desktop\work\p2p\udt\udt.sdk.4.11\udt4-appclient\app\appclient.cpp(645): warning C4100: 'argc' : 未參考的型式參數
-     1>c:\users\9200\desktop\work\p2p\udt\udt.sdk.4.11\udt4-appclient\app\appclient.cpp(697): warning C4127: 條件運算式是常數
-     1>c:\users\9200\desktop\work\p2p\udt\udt.sdk.4.11\udt4-appclient\app\appclient.cpp(742): warning C4127: 條件運算式是常數
-     1>c:\users\9200\desktop\work\p2p\udt\udt.sdk.4.11\udt4-appclient\app\appclient.cpp(789): warning C4996: 'sprintf': This function or variable may be unsafe. Consider using sprintf_s instead. To disable deprecation, use _CRT_SECURE_NO_WARNINGS. See online help for details.
+     1>c:\users\9200\desktop\work\p2p\udt\udt.sdk.4.11\udt4-appclient\app\appclient.cpp(293): warning C4244: '引數' : 將 'time_t' 轉換為 'unsigned int'，由於類型不同，可能導致資料遺失
+     1>c:\users\9200\desktop\work\p2p\udt\udt.sdk.4.11\udt4-appclient\app\appclient.cpp(280): warning C4100: 'param' : 未參考的型式參數
+     1>c:\users\9200\desktop\work\p2p\udt\udt.sdk.4.11\udt4-appclient\app\appclient.cpp(317): warning C4189: 'ssize' : 已初始化區域變數，但並未參考
+     1>c:\users\9200\desktop\work\p2p\udt\udt.sdk.4.11\udt4-appclient\app\appclient.cpp(412): warning C4100: 'param' : 未參考的型式參數
+     1>c:\users\9200\desktop\work\p2p\udt\udt.sdk.4.11\udt4-appclient\app\appclient.cpp(425): warning C4189: 'udtbuf' : 已初始化區域變數，但並未參考
+     1>c:\users\9200\desktop\work\p2p\udt\udt.sdk.4.11\udt4-appclient\app\appclient.cpp(521): warning C4100: 'argv' : 未參考的型式參數
+     1>c:\users\9200\desktop\work\p2p\udt\udt.sdk.4.11\udt4-appclient\app\appclient.cpp(521): warning C4100: 'argc' : 未參考的型式參數
+     1>c:\users\9200\desktop\work\p2p\udt\udt.sdk.4.11\udt4-appclient\app\appclient.cpp(678): warning C4127: 條件運算式是常數
+     1>c:\users\9200\desktop\work\p2p\udt\udt.sdk.4.11\udt4-appclient\app\appclient.cpp(722): warning C4127: 條件運算式是常數
+     1>c:\users\9200\desktop\work\p2p\udt\udt.sdk.4.11\udt4-appclient\app\appclient.cpp(768): warning C4996: 'sprintf': This function or variable may be unsafe. Consider using sprintf_s instead. To disable deprecation, use _CRT_SECURE_NO_WARNINGS. See online help for details.
                  c:\program files (x86)\microsoft visual studio 12.0\vc\include\stdio.h(356) : 請參閱 'sprintf' 的宣告
-     1>c:\users\9200\desktop\work\p2p\udt\udt.sdk.4.11\udt4-appclient\app\appclient.cpp(853): warning C4996: 'sprintf': This function or variable may be unsafe. Consider using sprintf_s instead. To disable deprecation, use _CRT_SECURE_NO_WARNINGS. See online help for details.
+     1>c:\users\9200\desktop\work\p2p\udt\udt.sdk.4.11\udt4-appclient\app\appclient.cpp(831): warning C4996: 'sprintf': This function or variable may be unsafe. Consider using sprintf_s instead. To disable deprecation, use _CRT_SECURE_NO_WARNINGS. See online help for details.
                  c:\program files (x86)\microsoft visual studio 12.0\vc\include\stdio.h(356) : 請參閱 'sprintf' 的宣告
-     1>c:\users\9200\desktop\work\p2p\udt\udt.sdk.4.11\udt4-appclient\app\appclient.cpp(843): warning C4100: 'rendezvous' : 未參考的型式參數
-     1>c:\users\9200\desktop\work\p2p\udt\udt.sdk.4.11\udt4-appclient\app\appclient.cpp(888): warning C4996: 'sprintf': This function or variable may be unsafe. Consider using sprintf_s instead. To disable deprecation, use _CRT_SECURE_NO_WARNINGS. See online help for details.
+     1>c:\users\9200\desktop\work\p2p\udt\udt.sdk.4.11\udt4-appclient\app\appclient.cpp(821): warning C4100: 'rendezvous' : 未參考的型式參數
+     1>c:\users\9200\desktop\work\p2p\udt\udt.sdk.4.11\udt4-appclient\app\appclient.cpp(865): warning C4996: 'sprintf': This function or variable may be unsafe. Consider using sprintf_s instead. To disable deprecation, use _CRT_SECURE_NO_WARNINGS. See online help for details.
                  c:\program files (x86)\microsoft visual studio 12.0\vc\include\stdio.h(356) : 請參閱 'sprintf' 的宣告
-     1>c:\users\9200\desktop\work\p2p\udt\udt.sdk.4.11\udt4-appclient\app\appclient.cpp(913): warning C4996: 'sprintf': This function or variable may be unsafe. Consider using sprintf_s instead. To disable deprecation, use _CRT_SECURE_NO_WARNINGS. See online help for details.
+     1>c:\users\9200\desktop\work\p2p\udt\udt.sdk.4.11\udt4-appclient\app\appclient.cpp(889): warning C4996: 'sprintf': This function or variable may be unsafe. Consider using sprintf_s instead. To disable deprecation, use _CRT_SECURE_NO_WARNINGS. See online help for details.
                  c:\program files (x86)\microsoft visual studio 12.0\vc\include\stdio.h(356) : 請參閱 'sprintf' 的宣告
        Link:
          C:\Program Files (x86)\Microsoft Visual Studio 12.0\VC\bin\link.exe /ERRORREPORT:PROMPT /OUT:"../app\appclient.exe" /INCREMENTAL /NOLOGO /LIBPATH:../src kernel32.lib user32.lib ws2_32.lib udt.lib /MANIFEST /MANIFESTUAC:"level='asInvoker' uiAccess='false'" /manifest:embed /DEBUG /PDB:"../app\appclient.pdb" /SUBSYSTEM:CONSOLE /TLBID:1 /DYNAMICBASE:NO /IMPLIB:"../app\appclient.lib" /MACHINE:X86 /SAFESEH ../app\appclient.obj
@@ -37,4 +36,4 @@
 
 建置成功。
 
-經過時間 00:00:03.34
+經過時間 00:00:03.30
