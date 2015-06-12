@@ -30,11 +30,13 @@ using namespace std;
 #define DEBUG_LEVEL2		2
 #define DEBUG_LEVEL3		3
 
-int debug_level = NO_DEBUG;
+int debug_level = DEBUG_LEVEL1;
 
 #define DEBUG_MSG(str){						\
             if(debug_level >= DEBUG_LEVEL1) \
-                perror(str) ;               \
+			{								\
+                cout << str;               	\
+			}								\
         }
 
 #define ERROR_SHOW(str){							 \
@@ -121,8 +123,8 @@ map<unsigned int, unsigned int>::iterator connectMap_iter;
 deque<package_t*> taskQueue;
 set<UDTSOCKET> readfds;
 set<SYSSOCKET> tcpread;
-SYSSOCKET *pTcp_sock = NULL;
-UDTSOCKET client = NULL;
+SYSSOCKET *pTcp_sock;
+UDTSOCKET client;
 UDT::TRACEINFO trace;
 int udtsize;
 char keyin;
@@ -360,15 +362,13 @@ DWORD WINAPI AppServer_UDT(LPVOID param)
 	UDT::epoll_add_usock(udt_eid, client);
 	
 	int state;
-	package_t udtbuf = { 0 };
-	
-	int ssize = 0;
+	package_t udtbuf;
 	udtsize = sizeof(udtbuf);
 
 	cout << "Run UDT loop ...\n";
 	udt_running = 1;
 	while (udt_running) {
-		state = UDT::epoll_wait(udt_eid, &readfds, NULL, 0, NULL, NULL);
+		state = UDT::epoll_wait(udt_eid, &readfds, NULL, 1, NULL, NULL);
 		if (state > 0) {
 			for (set<UDTSOCKET>::iterator i = readfds.begin(); i != readfds.end(); ++i) {
 				int rs = 0;
@@ -387,10 +387,12 @@ DWORD WINAPI AppServer_UDT(LPVOID param)
 				}
 				if (rs > 0) 
 				{
+					DEBUG_MSG("UDT Thread Entry.\n");
 					switch (udtbuf.header.cmd)
 					{
 						case CMD_C_DISCONNECT:
 						{
+							DEBUG_MSG(" - UDT [CMD_C_DISCONNECT]\n");
 							addTaskQueueItem2Front(&taskQueue, 
 											 CMD_C_DISCONNECT, 
 											 udtbuf.header.cliFD, 
@@ -401,6 +403,7 @@ DWORD WINAPI AppServer_UDT(LPVOID param)
 						break;
 						case CMD_CONNECT:
 						{
+							DEBUG_MSG(" - UDT [CMD_CONNECT]\n");
 							addTaskQueueItem2Front(&taskQueue,
 										     CMD_CONNECT,
 											 udtbuf.header.cliFD,
@@ -411,6 +414,7 @@ DWORD WINAPI AppServer_UDT(LPVOID param)
 						break;
 						case CMD_DATA_C2S:
 						{
+							DEBUG_MSG(" - UDT [CMD_DATA_C2S]\n");
 							addTaskQueueItem2Back(&taskQueue,
 											 CMD_DATA_S2T, 
 											 udtbuf.header.cliFD, 
@@ -422,6 +426,7 @@ DWORD WINAPI AppServer_UDT(LPVOID param)
 						default:
 							break;
 					}
+					DEBUG_MSG(" - UDT Thread Exit.\n");
 				}
 			}
 		}
@@ -470,7 +475,7 @@ DWORD WINAPI AppServer_TCP(LPVOID param)
 
 	int state;
 	tcp_running = 0;
-	package_t udtbuf = { 0 };
+	package_t udtbuf;
 	tcp_eid = UDT::epoll_create();
 	char* tcpdata = new char[TCP_DATA_MAX_LEN];
 
@@ -478,9 +483,10 @@ DWORD WINAPI AppServer_TCP(LPVOID param)
 	tcp_running = 1;
 	while (tcp_running)
 	{
-		state = UDT::epoll_wait(tcp_eid, NULL, NULL, 0, &tcpread, NULL);
+		state = UDT::epoll_wait(tcp_eid, NULL, NULL, 1, &tcpread, NULL);
 		if (state > 0) {
 			for (set<SYSSOCKET>::iterator i = tcpread.begin(); i != tcpread.end(); ++i){
+				DEBUG_MSG("TCP Thread Entry.\n");
 				int rs = recv(*i, tcpdata, TCP_DATA_MAX_LEN, 0);
 				if (rs <= 0) {
 					if (rs < 0)	printf("\tTCP[%d] can't read.\n", *i);
@@ -513,10 +519,12 @@ DWORD WINAPI AppServer_TCP(LPVOID param)
 				}
 				else 
 				{
+					DEBUG_MSG(" - tcpsock["); DEBUG_MSG(*i); DEBUG_MSG("]\n");
 					connectMap_iter = connectMapKeyS.find(*i);
 					if (connectMap_iter == connectMapKeyS.end())
 						continue;
 
+					DEBUG_MSG(" - Ready to send UDT package.\n");
 					char* buftmp = (char*)(&udtbuf);
 					udtbuf.header.cmd = CMD_DATA_S2C;
 					udtbuf.header.cliFD = connectMap_iter->second;
@@ -545,6 +553,8 @@ DWORD WINAPI AppServer_TCP(LPVOID param)
 					//cout << "\tspeed = " << trace.mbpsSendRate << "Mbits/sec" << endl;
 				}
 			}
+
+			DEBUG_MSG(" - TCP Thread Exit.\n");
 		}else {
 			if ((CUDTException::EINVPARAM == UDT::getlasterror().getErrorCode()) ||
 				(CUDTException::ECONNLOST == UDT::getlasterror().getErrorCode())) {
@@ -556,30 +566,6 @@ DWORD WINAPI AppServer_TCP(LPVOID param)
 	cout << "release tcp epoll ..." << endl;
 	state = UDT::epoll_release(tcp_eid);
 	delete[] tcpdata;
-
-#ifndef WIN32
-	pthread_detach(pthread_self());
-	return NULL;
-#else
-	return 0;
-#endif
-}
-////////////////////////////////////////////////////////////////////////////////////////////
-////////////////////////////////////////////////////////////////////////////////////////////
-////////////////////////////////////////////////////////////////////////////////////////////
-#ifndef WIN32
-	void* TaskQueue_Processing(void* param)
-#else
-	DWORD WINAPI TaskQueue_Processing(LPVOID param)
-#endif
-{
-#ifndef WIN32
-   //ignore SIGPIPE
-   sigset_t ps;
-   sigemptyset(&ps);
-   sigaddset(&ps, SIGPIPE);
-   pthread_sigmask(SIG_BLOCK, &ps, NULL);
-#endif
 
 #ifndef WIN32
 	pthread_detach(pthread_self());
@@ -628,10 +614,12 @@ main(int argc, char* argv[]) {
 	{
 		if (!taskQueue.empty())
 		{
+			DEBUG_MSG("Task Queue Entry.\n");
 			switch (taskQueue.front()->header.cmd)
 			{
 			case CMD_C_DISCONNECT:
 			{
+				DEBUG_MSG(" - Task Queue [CMD_C_DISCONNECT]\n"); 
 				connectMap_iter = connectMapKeyC.find(taskQueue.front()->header.cliFD);
 				if (connectMap_iter != connectMapKeyC.end())
 				{
@@ -647,6 +635,7 @@ main(int argc, char* argv[]) {
 			break;
 			case CMD_CONNECT:
 			{
+				DEBUG_MSG(" - Task Queue [CMD_CONNECT]\n"); 
 				pTcp_sock = new SYSSOCKET;
 				if (createTCPSocket(*pTcp_sock, 0) < 0) {
 					cout << "\tcan't create tcp socket!" << endl;
@@ -664,6 +653,7 @@ main(int argc, char* argv[]) {
 			break;
 			case CMD_S_DISCONNECT:
 			{
+				DEBUG_MSG(" - Task Queue [CMD_S_DISCONNECT]\n"); 
 				char* buftmp = (char*)(taskQueue.front());
 				int res = 0;
 				int ssize = 0;
@@ -691,6 +681,7 @@ main(int argc, char* argv[]) {
 			break;
 			case CMD_DATA_S2T:
 			{
+				DEBUG_MSG(" - Task Queue [CMD_DATA_S2T]\n"); 
 				connectMap_iter = connectMapKeyC.find(taskQueue.front()->header.cliFD);
 				if (connectMap_iter != connectMapKeyC.end())
 				{
@@ -698,8 +689,14 @@ main(int argc, char* argv[]) {
 						taskQueue.front()->payload.buf,
 						taskQueue.front()->payload.len,
 						0);
-					if (0 > rs)			cout << "\t CMD_DATA_S2T error1.\n";
-					else if (rs == 0)	printf("\t CMD_DATA_S2T disconnect.\n");
+					if (0 > rs)
+					{
+						DEBUG_MSG(" - Task Queue [CMD_DATA_S2T] error1\n"); 
+					}
+					else if (rs == 0)
+					{
+						DEBUG_MSG(" - Task Queue [CMD_DATA_S2T] disconnect.\n"); 
+					}
 				}
 				taskQueue.pop_front();
 			}
@@ -708,6 +705,9 @@ main(int argc, char* argv[]) {
 				break;
 			}
 		}
+#ifndef WIN32
+		usleep(1000);
+#endif
 	}
 	////////////////////////////////////////////////////////////////
 	////////////////////////////////////////////////////////////////

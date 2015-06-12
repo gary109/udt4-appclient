@@ -28,15 +28,14 @@
 #define DEBUG_LEVEL1 1
 #define DEBUG_LEVEL2 2
 #define DEBUG_LEVEL3 3
-int debug_level = NO_DEBUG;
+int debug_level = DEBUG_LEVEL1;
 
-#define PERROR_GOTO(cond,err,label){        \
-        if(cond)                            \
-        {                                   \
+#define DEBUG_MSG(str){        				\
             if(debug_level >= DEBUG_LEVEL1) \
-                perror(err) ;               \
-            goto label;                     \
-        }}
+			{								\
+            	cout << str;				\
+			}								\
+        }									
 
 #define ERROR_GOTO(cond,str,label){                  \
         if(cond)                                     \
@@ -124,7 +123,7 @@ deque<package_t*> taskQueue;
 set<UDTSOCKET> readfds;
 set<SYSSOCKET> tcpread;
 SYSSOCKET tcpsock;
-UDTSOCKET client = NULL;
+UDTSOCKET client;
 UDT::TRACEINFO trace;
 int udtsize;
 char keyin;
@@ -312,17 +311,16 @@ DWORD WINAPI AppClient_UDT(LPVOID param)
 	UDT::epoll_add_usock(udt_eid, client);
 	
 	int state;
-	package_t udtbuf = { 0 };
-
-	int ssize = 0;
+	package_t udtbuf;
 	udtsize = sizeof(udtbuf);
 	
 	cout << "Run UDT loop ...\n";
 	udt_running = 1;
 	while(udt_running) {
-		state = UDT::epoll_wait(udt_eid, &readfds, NULL, 0 , NULL, NULL);
+		state = UDT::epoll_wait(udt_eid, &readfds, NULL, 1 , NULL, NULL);
 		
 		if(state > 0) {
+			DEBUG_MSG("UDT Thread Entry.\n");
 			for (set<UDTSOCKET>::iterator i = readfds.begin(); i != readfds.end(); ++ i) {
 				int rs = 0;
 				int rsize = 0;
@@ -354,24 +352,31 @@ DWORD WINAPI AppClient_UDT(LPVOID param)
 					{
 						case CMD_S_DISCONNECT:
 						{
+							DEBUG_MSG(" - UDT [CMD_S_DISCONNECT]\n");
 							addTaskQueueItem2Back(&taskQueue, CMD_S_DISCONNECT, udtbuf.header.cliFD, 0, NULL, 0);
 						}
 						break;
 						case CMD_DATA_S2C:
 						{
+							DEBUG_MSG(" - UDT [CMD_DATA_S2C]\n");
 							connectMap_iter = connectMap.find(udtbuf.header.cliFD);
 							if (connectMap_iter != connectMap.end())
 							{
 								int rs = send(udtbuf.header.cliFD, udtbuf.payload.buf, udtbuf.payload.len, 0);
-								if (0 > rs)			cout << "\t CMD_DATA_S2C error1.\n";
-								else if (rs == 0)	printf("\t CMD_DATA_S2C disconnect.\n");
+								if (0 > rs) {
+									DEBUG_MSG(" - UDT [CMD_DATA_S2C] error1.\n");
+								}
+								else if (rs == 0) {
+									DEBUG_MSG(" - UDT [CMD_DATA_S2C] disconnect.\n");
+								}
 							}
 						}
 						break;
 						default:break;
 					}
 				}
-			}	
+			}		
+			DEBUG_MSG("UDT Thread Exit.\n");				
 		}
 		else
 		{
@@ -386,18 +391,14 @@ DWORD WINAPI AppClient_UDT(LPVOID param)
 		}
 	}
 
-	cout << "release epoll" << endl;
+	cout << "release udt epoll" << endl;
 	state = UDT::epoll_release(udt_eid);
 
 	cout << "Close client ...";
 	UDT::close(client);
 	cout << "ok\n";
-	
-	cout << "Press any key to continue...";
-	cin >> keyin;
 
 #ifndef WIN32
-	pthread_detach(pthread_self());
 	return NULL;
 #else
 	return 0;
@@ -422,7 +423,7 @@ DWORD WINAPI AppClient_TCP(LPVOID param)
 	SYSSOCKET tcp_serv;
 	int state;
 	tcp_running = 0;
-	package_t udtbuf = { 0 };
+	//package_t udtbuf = { 0 };
 	tcp_eid = UDT::epoll_create();
 	char* tcpdata = new char[TCP_DATA_MAX_LEN];
 	if (createTCPSocket(tcp_serv, REMOTE_PORT) < 0)
@@ -436,10 +437,11 @@ DWORD WINAPI AppClient_TCP(LPVOID param)
 	cout << "Run TCP loop ...\n";
 	tcp_running = 1;
 	while (tcp_running) {
-		state = UDT::epoll_wait(tcp_eid, NULL, NULL, 0, &tcpread, NULL);
+		state = UDT::epoll_wait(tcp_eid, NULL, NULL, 1, &tcpread, NULL);
 		if (state > 0) {
 			for (set<SYSSOCKET>::iterator i = tcpread.begin(); i != tcpread.end(); ++i) {
 				if (*i == tcp_serv) {
+					DEBUG_MSG("TCP Thread Entry.\n");				
 					sockaddr_storage clientaddr;
 					socklen_t addrlen = sizeof(clientaddr);
 
@@ -450,7 +452,9 @@ DWORD WINAPI AppClient_TCP(LPVOID param)
 						perror("accept");
 						continue;
 					}
-	
+					
+					DEBUG_MSG(" - tcpsock["); DEBUG_MSG(tcpsock); DEBUG_MSG("]\n");				
+					
 					map_insert(&connectMap, tcpsock, 0);
 					UDT::epoll_add_ssock(tcp_eid, tcpsock);
 					addTaskQueueItem2Back(&taskQueue, CMD_CONNECT, tcpsock, 0, NULL, 0);
@@ -481,9 +485,11 @@ DWORD WINAPI AppClient_TCP(LPVOID param)
 						}
 					}
 					else{
+						DEBUG_MSG(" - other tcp sock["); DEBUG_MSG(*i); DEBUG_MSG("]\n");				
 						connectMap_iter = connectMap.find(*i);
 						if (connectMap_iter == connectMap.end())
 							continue;
+
 						addTaskQueueItem2Back(&taskQueue, CMD_DATA_C2S, *i, connectMap_iter->second, tcpdata, rs);
 					}
 				}
@@ -508,7 +514,6 @@ DWORD WINAPI AppClient_TCP(LPVOID param)
 #endif
 
 #ifndef WIN32
-	pthread_detach(pthread_self());
 	return NULL;
 #else
 	return 0;
@@ -554,10 +559,12 @@ main(int argc, char* argv[])
 	while (main_running)
 	{
 		if (!taskQueue.empty()) {
+			DEBUG_MSG("Task Queue Entry.\n");				
 			switch (taskQueue.front()->header.cmd)
 			{
 			case CMD_S_DISCONNECT:
 			{
+				DEBUG_MSG(" - [CMD_S_DISCONNECT]\n");				
 				connectMap_iter = connectMap.find(taskQueue.front()->header.cliFD);
 				if (connectMap_iter != connectMap.end())
 				{
@@ -573,6 +580,7 @@ main(int argc, char* argv[])
 			break;
 			case CMD_C_DISCONNECT:
 			{
+				DEBUG_MSG(" - [CMD_C_DISCONNECT]\n");				
 				char* buftmp = (char*)(taskQueue.front());
 				int res = 0;
 				int ssize = 0;
@@ -600,6 +608,7 @@ main(int argc, char* argv[])
 			break;
 			case CMD_DATA_C2T:
 			{
+				DEBUG_MSG(" - [CMD_DATA_C2T]\n");				
 				connectMap_iter = connectMap.find(taskQueue.front()->header.cliFD);
 				if (connectMap_iter != connectMap.end())
 				{
@@ -623,8 +632,10 @@ main(int argc, char* argv[])
 			}
 			break;
 			case CMD_CONNECT:
+				DEBUG_MSG(" - [CMD_CONNECT]\n");				
 			case CMD_DATA_C2S:
 			{
+				DEBUG_MSG(" - [CMD_DATA_C2S]\n");				
 				char* buftmp = (char*)(taskQueue.front());
 				int rs = 0;
 				int ssize = 0;
@@ -652,7 +663,11 @@ main(int argc, char* argv[])
 			default:
 				break;
 			}
+			cout << "Task - Exit\n";
 		}
+#ifndef WIN32
+		usleep(1000);
+#endif
 	}
 	////////////////////////////////////////////////////////////////
 	////////////////////////////////////////////////////////////////
